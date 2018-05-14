@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 np.random.seed(2018)
 
 """
@@ -9,7 +10,6 @@ a navive implementation of neural networks with an example
 """
 
 # activation functions
-
 
 class relu(object):
     """
@@ -85,6 +85,12 @@ def softmax_loss(scores, y_true):
 class LinearLayer(object):
     """
     basic linear layer for nn
+    Parameters:
+    ----------------------
+    in_dim: input dimention
+    out_dim: output dimention
+    activation_fn: optional activation function for the layer
+    name: optional name for the layer 
     """
 
     def __init__(self, in_dim, out_dim, activation_fn=None, name="default"):
@@ -99,13 +105,27 @@ class LinearLayer(object):
         self.biases = get_biases(self.out_dim)
 
     def __call__(self, X):
-        # assert(X.shape[1] == self.in_dim)
+        """
+        coputer forward pass over the layer
+        -------------------
+        Z=XW+b
+        A=f(Z)
+        Parameters:
+        X: input data X
+        """
         self.X = X
         self.Z = X.dot(self.weights) + self.biases
         self.A = self.activation_fn(self.Z) if self.activation_fn else self.Z
         return self.A
 
     def gradient(self, g_out):
+        """
+        compute the gradients over the layer used for backpropagation
+        Parameters:
+        ------------------
+        g_out: gradient caused by the output of the layer
+
+        """
         self.g_A = g_out
         self.g_Z = self.g_A * self.activation_fn.gradient(self.Z) if self.activation_fn else self.g_A
         self.g_w = self.X.T.dot(self.g_Z)
@@ -131,10 +151,16 @@ class VanilaNN(object):
         self.build_model()
 
     def build_model(self):
+        """
+        just use one hidden layer and one output layer for simplicity
+        """
         self.layer1 = LinearLayer(self.num_features, 4, activation_fn=tanh())
         self.layer2 = LinearLayer(4, self.out_nodes)
 
     def calculate_loss(self):
+        """
+        calcualte the total loss for the batch
+        """
         softloss = softmax_loss(self.scores, self.y)
         regloss = 0.0
         regloss += np.sum(np.square(self.layer1.weights))
@@ -142,19 +168,26 @@ class VanilaNN(object):
         return (softloss + self.reg / 2 * regloss) / self.num_samples
     
     def forward(self):
+        """
+        computer forward propagation for the whole batch
+        """
         self.A1 = self.layer1(self.X)
         self.A2 = self.layer2(self.A1)
         self.scores = softmax_score(self.A2)
 
     def backward(self):
+        """
+        compute the correspond gradient through backpropagation
+        """
         self.g_out = self.scores
         self.g_out[range(self.num_samples), self.y] -= 1
         self.g_l2, self.g_l2_w, self.g_l2_b = self.layer2.gradient(self.g_out)
         self.g_l1, self.g_l1_w, self.g_l1_b = self.layer1.gradient(self.g_l2)
 
     def optimize(self):
-        
-        # update weights and biases
+        """
+        update weights and biases ,using batch gradient descent
+        """
 
         self.g_l1_b = self.g_l1_b.sum(axis=0, keepdims=True)
         self.g_l2_b = self.g_l2_b.sum(axis=0, keepdims=True)
@@ -186,6 +219,9 @@ class VanilaNN(object):
 
 
 def plot_decision_boundary(X, y, pred_func):
+    """
+    plot decition boundary through model's prediction function
+    """
     # Set min and max values and give it some padding
     x_min, x_max = X[:, 0].min() - .5, X[:, 0].max() + .5
     y_min, y_max = X[:, 1].min() - .5, X[:, 1].max() + .5
